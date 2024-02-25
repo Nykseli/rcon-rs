@@ -1,4 +1,5 @@
 use clap::Parser;
+use config::ServerConfig;
 use std::io::{self, BufRead, Write};
 
 use cli_args::Args;
@@ -8,6 +9,7 @@ use crate::command_file::commands_from_file;
 
 mod cli_args;
 mod command_file;
+mod config;
 mod connection;
 mod packet;
 
@@ -33,20 +35,21 @@ fn interactive(connection: &mut RemoteConnection, host: &str) {
 
 fn main() {
     let args = Args::parse();
-    let host = args.full_host();
+    let config = ServerConfig::from_args(&args);
+    let host = config.full_host();
 
     match args.file {
         Some(file) => {
             let commands = commands_from_file(&file);
             let mut con = RemoteConnection::from_address(&host);
-            con.authenticate(args.secret);
+            con.authenticate(config.secret);
             for command in commands {
                 con.send_command(command);
             }
         }
         None => {
             let mut con = RemoteConnection::from_address(&host);
-            con.authenticate(args.secret);
+            con.authenticate(config.secret);
             interactive(&mut con, &host);
         }
     }
